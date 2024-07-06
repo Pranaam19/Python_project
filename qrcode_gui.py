@@ -1,77 +1,48 @@
-import sys
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox
+from PyQt5.QtGui import QPixmap, QImage
 import qrcode
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QLabel, QLineEdit
-from PyQt5.QtGui import QPixmap, QFont
+from PIL import Image
 
 class QRCodeGenerator(QWidget):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super().__init__(parent)
         self.initUI()
 
     def initUI(self):
         self.setWindowTitle('QR Code Generator')
-        self.setGeometry(100, 100, 600, 400)  # Larger size
+        self.setGeometry(100, 100, 400, 300)
 
-        self.layout = QVBoxLayout()
+        layout = QVBoxLayout()
+
+        self.label = QLabel('Enter text to generate QR Code:', self)
+        layout.addWidget(self.label)
 
         self.textbox = QLineEdit(self)
-        self.textbox.setPlaceholderText('Enter text or URL')
-        self.layout.addWidget(self.textbox)
+        layout.addWidget(self.textbox)
 
-        self.generate_button = QPushButton('Generate QR Code', self)
-        self.generate_button.clicked.connect(self.generateQR)
-        self.generate_button.setStyleSheet('''
-            background-color: #4CAF50; /* Green */
-            border: none;
-            color: white;
-            padding: 10px 20px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 16px;
-            margin: 4px 2px;
-            cursor: pointer;
-            border-radius: 5px;
-        ''')
-        self.layout.addWidget(self.generate_button)
+        self.button = QPushButton('Generate QR Code', self)
+        self.button.clicked.connect(self.generateQRCode)
+        layout.addWidget(self.button)
 
         self.qr_label = QLabel(self)
-        self.qr_label.setAlignment(Qt.AlignCenter)
-        self.layout.addWidget(self.qr_label)
+        layout.addWidget(self.qr_label)
 
-        self.setLayout(self.layout)
+        self.setLayout(layout)
 
-        # Apply modern styling to the window
-        self.setStyleSheet('''
-            background-color: #f0f0f0;
-            font-family: Arial, sans-serif;
-            font-size: 14px;
-            padding: 20px;
-        ''')
+    def generateQRCode(self):
+        text = self.textbox.text()
+        if not text.strip():
+            QMessageBox.warning(self, 'Error', 'Please enter some text.')
+            return
 
-    def generateQR(self):
-        data = self.textbox.text()
-        qr = qrcode.QRCode(
-            version=1,
-            error_correction=qrcode.constants.ERROR_CORRECT_L,
-            box_size=10,
-            border=4,
-        )
-        qr.add_data(data)
+        qr = qrcode.QRCode(version=1, box_size=10, border=5)
+        qr.add_data(text)
         qr.make(fit=True)
         img = qr.make_image(fill='black', back_color='white')
-        img.save('qrcode.png')  # Save QR code as an image (optional)
-        pixmap = QPixmap('qrcode.png')
+
+        img = img.convert("RGB")  # Convert image to RGB
+        data = img.tobytes("raw", "RGB")
+        qimage = QImage(data, img.size[0], img.size[1], QImage.Format_RGB888)
+        pixmap = QPixmap.fromImage(qimage)
+
         self.qr_label.setPixmap(pixmap)
-
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    window = QRCodeGenerator()
-
-    # Set a nicer font for the application
-    font = QFont("Segoe UI", 14)
-    app.setFont(font)
-
-    window.show()
-    sys.exit(app.exec_())

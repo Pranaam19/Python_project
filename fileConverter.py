@@ -1,57 +1,45 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QFileDialog, QLabel, QMessageBox
+import sys
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QFileDialog, QMessageBox
 from PyQt5.QtCore import Qt
-from pdf2docx import Converter as PDFToDocxConverter
-from docx2pdf import convert as DocxToPDFConverter
+from pdf2docx import parse
+from docx2pdf import convert
 
 class FileConverter(QWidget):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super().__init__(parent)
         self.initUI()
 
     def initUI(self):
         self.setWindowTitle('File Converter')
-        self.setGeometry(100, 100, 800, 600)
+        self.setGeometry(100, 100, 400, 300)
 
         layout = QVBoxLayout()
 
-        self.label = QLabel('Choose a file conversion option:', self)
-        self.label.setAlignment(Qt.AlignCenter)
+        self.label = QLabel('Select a conversion option:', self)
         layout.addWidget(self.label)
 
-        btn_pdf_to_docx = QPushButton('Convert PDF to DOCX', self)
-        btn_pdf_to_docx.clicked.connect(self.convertPDFToDocx)
-        layout.addWidget(btn_pdf_to_docx)
+        self.button_pdf_to_doc = QPushButton('Convert PDF to DOCX', self)
+        self.button_pdf_to_doc.clicked.connect(self.convertPdfToDocx)
+        layout.addWidget(self.button_pdf_to_doc)
 
-        btn_docx_to_pdf = QPushButton('Convert DOCX to PDF', self)
-        btn_docx_to_pdf.clicked.connect(self.convertDocxToPDF)
-        layout.addWidget(btn_docx_to_pdf)
+        self.button_doc_to_pdf = QPushButton('Convert DOCX to PDF', self)
+        self.button_doc_to_pdf.clicked.connect(self.convertDocToPdf)
+        layout.addWidget(self.button_doc_to_pdf)
 
         self.setLayout(layout)
 
-    def convertPDFToDocx(self):
+    def convertPdfToDocx(self):
         options = QFileDialog.Options()
-        options |= QFileDialog.ReadOnly
-        pdf_file, _ = QFileDialog.getOpenFileName(self, "Select PDF file to convert", "", "PDF Files (*.pdf)", options=options)
-        if pdf_file:
-            save_path, _ = QFileDialog.getSaveFileName(self, "Save DOCX file", "", "DOCX Files (*.docx)", options=options)
-            if save_path:
-                try:
-                    converter = PDFToDocxConverter(pdf_file)
-                    converter.convert(save_path, start=0, end=None)
-                    converter.close()
-                    QMessageBox.information(self, "Success", "PDF successfully converted to DOCX")
-                except Exception as e:
-                    QMessageBox.critical(self, "Error", f"An error occurred while converting PDF to DOCX: {e}")
+        fileName, _ = QFileDialog.getOpenFileName(self, "Select PDF File", "", "PDF Files (*.pdf)", options=options)
+        if fileName:
+            output_file = fileName.replace('.pdf', '.docx')
+            parse(fileName, output_file)
+            QMessageBox.information(self, 'Success', f'Converted to {output_file}')
 
-    def convertDocxToPDF(self):
+    def convertDocToPdf(self):
         options = QFileDialog.Options()
-        options |= QFileDialog.ReadOnly
-        docx_file, _ = QFileDialog.getOpenFileName(self, "Select DOCX file to convert", "", "DOCX Files (*.docx)", options=options)
-        if docx_file:
-            save_path, _ = QFileDialog.getSaveFileName(self, "Save PDF file", "", "PDF Files (*.pdf)", options=options)
-            if save_path:
-                try:
-                    DocxToPDFConverter(docx_file, save_path)
-                    QMessageBox.information(self, "Success", "DOCX successfully converted to PDF")
-                except Exception as e:
-                    QMessageBox.critical(self, "Error", f"An error occurred while converting DOCX to PDF: {e}")
+        fileName, _ = QFileDialog.getOpenFileName(self, "Select DOCX File", "", "DOCX Files (*.docx)", options=options)
+        if fileName:
+            convert(fileName)
+            output_file = fileName.replace('.docx', '.pdf')
+            QMessageBox.information(self, 'Success', f'Converted to {output_file}')

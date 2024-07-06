@@ -1,56 +1,40 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QTextEdit, QTextBrowser, QFileDialog
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QFileDialog, QTextEdit, QMessageBox
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QPixmap
 import pytesseract
 from PIL import Image
 
 class ImageToTextConverter(QWidget):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super().__init__(parent)
         self.initUI()
 
     def initUI(self):
         self.setWindowTitle('Image to Text Converter')
-        self.setGeometry(200, 200, 800, 600)
+        self.setGeometry(100, 100, 400, 300)
 
-        self.layout = QVBoxLayout()
+        layout = QVBoxLayout()
 
-        # Upload button
-        self.btn_upload = QPushButton('Upload Image', self)
-        self.btn_upload.clicked.connect(self.uploadImage)
-        self.layout.addWidget(self.btn_upload, alignment=Qt.AlignCenter)
+        self.label = QLabel('Upload an image to extract text:', self)
+        layout.addWidget(self.label)
 
-        # Image display area
-        self.image_label = QLabel(self)
-        self.image_label.setAlignment(Qt.AlignCenter)
-        self.layout.addWidget(self.image_label)
+        self.button = QPushButton('Upload Image', self)
+        self.button.clicked.connect(self.uploadImage)
+        layout.addWidget(self.button)
 
-        # Text display area
-        self.text_browser = QTextBrowser(self)
-        self.layout.addWidget(self.text_browser)
+        self.textbox = QTextEdit(self)
+        self.textbox.setReadOnly(True)
+        layout.addWidget(self.textbox)
 
-        self.setLayout(self.layout)
+        self.setLayout(layout)
 
     def uploadImage(self):
         options = QFileDialog.Options()
-        fileName, _ = QFileDialog.getOpenFileName(self, "Upload Image", "", "Image Files (*.png *.jpg *.jpeg *.gif)", options=options)
+        fileName, _ = QFileDialog.getOpenFileName(self, "Select Image File", "", "Images (*.png *.jpg *.jpeg)", options=options)
         if fileName:
-            # Display selected image
-            pixmap = QPixmap(fileName)
-            self.image_label.setPixmap(pixmap.scaledToWidth(400))  # Adjust width as needed
-
-            # Perform OCR using pytesseract
             extracted_text = self.extractTextFromImage(fileName)
-            self.text_browser.setText(extracted_text)
+            self.textbox.setPlainText(extracted_text)
 
     def extractTextFromImage(self, image_path):
-        # Use pytesseract to perform OCR
         text = pytesseract.image_to_string(Image.open(image_path))
         return text
-
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    converter_page = ImageToTextConverter()
-    converter_page.show()
-    sys.exit(app.exec_())
