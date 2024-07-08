@@ -10,6 +10,8 @@ from imageToText import ImageToTextConverter
 from fileConverter import FileConverter
 from digitalKeyGenerator import DigitalKeyGenerator
 from emailTemplateGenerator import EmailTemplateGenerator
+from watermark import WatermarkGenerator
+from TextToSpeech import TextToSpeechConverter
 
 class HomePage(QWidget):
     def __init__(self, parent=None):
@@ -75,6 +77,16 @@ class HomePage(QWidget):
         self.style_service_button(btn_email_template)
         service_layout.addWidget(btn_email_template)
 
+        btn_watermark_generator = QPushButton('Watermark Generator', self)
+        btn_watermark_generator.clicked.connect(self.showWatermarkGenerator)
+        self.style_service_button(btn_watermark_generator)
+        service_layout.addWidget(btn_watermark_generator)
+
+        btn_text_to_speech = QPushButton('Text to Speech Converter', self)
+        btn_text_to_speech.clicked.connect(self.showTextToSpeechConverter)
+        self.style_service_button(btn_text_to_speech)
+        service_layout.addWidget(btn_text_to_speech)
+
         main_content_layout.addLayout(service_layout)
         layout.addLayout(main_content_layout)
 
@@ -125,6 +137,12 @@ class HomePage(QWidget):
     def showEmailTemplateGenerator(self):
         self.parent().parent().showEmailTemplateGenerator()
 
+    def showWatermarkGenerator(self):
+        self.parent().parent().showWatermarkGenerator()
+
+    def showTextToSpeechConverter(self):
+        self.parent().parent().showTextToSpeechConverter()
+
 class MainApp(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -145,6 +163,8 @@ class MainApp(QMainWindow):
         self.file_converter_page = FileConverter(self)
         self.digital_key_generator_page = DigitalKeyGenerator(self)
         self.email_template_generator_page = EmailTemplateGenerator(self)
+        self.watermark_generator_page = WatermarkGenerator(self)
+        self.text_to_speech_converter_page = TextToSpeechConverter(self)
 
         self.stacked_widget.addWidget(self.login_page)
         self.stacked_widget.addWidget(self.signup_page)
@@ -154,6 +174,8 @@ class MainApp(QMainWindow):
         self.stacked_widget.addWidget(self.file_converter_page)
         self.stacked_widget.addWidget(self.digital_key_generator_page)
         self.stacked_widget.addWidget(self.email_template_generator_page)
+        self.stacked_widget.addWidget(self.watermark_generator_page)
+        self.stacked_widget.addWidget(self.text_to_speech_converter_page)
 
         self.stacked_widget.setCurrentWidget(self.login_page)  # Show login page first
 
@@ -180,6 +202,12 @@ class MainApp(QMainWindow):
 
     def showEmailTemplateGenerator(self):
         self.stacked_widget.setCurrentWidget(self.email_template_generator_page)
+
+    def showWatermarkGenerator(self):
+        self.stacked_widget.setCurrentWidget(self.watermark_generator_page)
+
+    def showTextToSpeechConverter(self):
+        self.stacked_widget.setCurrentWidget(self.text_to_speech_converter_page)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

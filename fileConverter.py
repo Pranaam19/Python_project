@@ -16,6 +16,7 @@ class FileConverter(QWidget):
         layout = QVBoxLayout()
 
         self.label = QLabel('Select a conversion option:', self)
+        self.label.setAlignment(Qt.AlignCenter)  # Center align the label text
         layout.addWidget(self.label)
 
         self.button_pdf_to_doc = QPushButton('Convert PDF to DOCX', self)
@@ -27,6 +28,34 @@ class FileConverter(QWidget):
         layout.addWidget(self.button_doc_to_pdf)
 
         self.setLayout(layout)
+
+        # Apply styles
+        self.setStyleSheet("""
+            QWidget {
+                background-color: #f0f0f0;  /* Light gray background */
+            }
+            QLabel {
+                font-size: 16px;
+                font-weight: bold;
+                margin-bottom: 10px;
+            }
+            QPushButton {
+                font-size: 14px;
+                padding: 10px;
+                margin-top: 10px;
+                margin-bottom: 10px;
+                background-color: #4CAF50;  /* Green */
+                color: white;
+                border: none;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;  /* Darker green on hover */
+            }
+            QPushButton:pressed {
+                background-color: #3e8e41;  /* Darker green when pressed */
+            }
+        """)
 
     def convertPdfToDocx(self):
         options = QFileDialog.Options()
@@ -43,3 +72,4 @@ class FileConverter(QWidget):
             convert(fileName)
             output_file = fileName.replace('.docx', '.pdf')
             QMessageBox.information(self, 'Success', f'Converted to {output_file}')
+
