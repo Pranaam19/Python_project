@@ -1,6 +1,10 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QStackedWidget, QWidget
+from PyQt5.QtWidgets import (
+    QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
+    QStackedWidget, QWidget, QGridLayout, QLineEdit, QComboBox
+)
 from PyQt5.QtCore import Qt
+import sqlite3
 
 # Import custom pages
 from login import LoginPage
@@ -11,6 +15,7 @@ from fileConverter import FileConverter
 from digitalKeyGenerator import DigitalKeyGenerator
 from emailTemplateGenerator import EmailTemplateGenerator
 from watermark import WatermarkGenerator
+from watermark_removal import WatermarkRemoval
 from TextToSpeech import TextToSpeechConverter
 
 class HomePage(QWidget):
@@ -20,78 +25,92 @@ class HomePage(QWidget):
 
     def initUI(self):
         self.setWindowTitle('Home Page')
-        self.setGeometry(100, 100, 1000, 600)
+        self.setGeometry(100, 100, 1200, 800)
 
-        layout = QVBoxLayout()
+        main_layout = QVBoxLayout()
 
-        # Navbar layout
+        # Navbar
         navbar_layout = QHBoxLayout()
         navbar_layout.setAlignment(Qt.AlignTop)
 
-        btn_home = QPushButton('Home', self)
-        self.style_navbar_button(btn_home)
-        navbar_layout.addWidget(btn_home)
+        logo_label = QLabel('MyApp', self)
+        logo_label.setStyleSheet('font-size: 24px; font-weight: bold; color: #ffffff;')
+        navbar_layout.addWidget(logo_label)
 
-        btn_about = QPushButton('About', self)
-        self.style_navbar_button(btn_about)
-        navbar_layout.addWidget(btn_about)
+        search_bar = QLineEdit(self)
+        search_bar.setPlaceholderText('Search services...')
+        search_bar.setStyleSheet('padding: 10px; border-radius: 5px;')
+        navbar_layout.addWidget(search_bar)
 
-        layout.addLayout(navbar_layout)
+        search_button = QPushButton('Search', self)
+        search_button.setStyleSheet('background-color: #ff9900; color: white; padding: 10px 20px; border-radius: 5px;')
+        navbar_layout.addWidget(search_button)
 
-        # Main content layout
-        main_content_layout = QVBoxLayout()
-        main_content_layout.setAlignment(Qt.AlignCenter)
+        btn_login = QPushButton('Login', self)
+        btn_login.clicked.connect(self.showLoginPage)
+        self.style_navbar_button(btn_login)
+        navbar_layout.addWidget(btn_login)
 
-        # Welcome message
-        welcome_label = QLabel('Welcome to MyApp', self)
-        welcome_label.setAlignment(Qt.AlignCenter)
-        welcome_label.setStyleSheet('font-size: 32px; font-weight: bold;')
-        main_content_layout.addWidget(welcome_label)
+        btn_signup = QPushButton('Sign Up', self)
+        btn_signup.clicked.connect(self.showSignupPage)
+        self.style_navbar_button(btn_signup)
+        navbar_layout.addWidget(btn_signup)
 
-        # Service buttons
-        service_layout = QHBoxLayout()
-        service_layout.setAlignment(Qt.AlignCenter)
+        navbar_container = QWidget()
+        navbar_container.setLayout(navbar_layout)
+        navbar_container.setStyleSheet('background-color: #232f3e; padding: 10px;')
+        main_layout.addWidget(navbar_container)
 
-        btn_qr_code = QPushButton('QR Code Generator', self)
-        btn_qr_code.clicked.connect(self.showQRCodeGenerator)
-        self.style_service_button(btn_qr_code)
-        service_layout.addWidget(btn_qr_code)
+        # Categories section
+        categories_layout = QHBoxLayout()
+        categories_layout.setAlignment(Qt.AlignCenter)
 
-        btn_image_to_text = QPushButton('Image to Text Converter', self)
-        btn_image_to_text.clicked.connect(self.showImageToTextConverter)
-        self.style_service_button(btn_image_to_text)
-        service_layout.addWidget(btn_image_to_text)
+        categories = ['QR Code', 'Image to Text', 'File Converter', 'Digital Key', 'Email Template', 'Watermark', 'Watermark Removal']
+        for category in categories:
+            category_button = QPushButton(category, self)
+            category_button.setStyleSheet('''
+                QPushButton {
+                    background-color: #0078d7;
+                    color: white;
+                    font-size: 18px;
+                    padding: 15px 30px;
+                    margin: 10px;
+                    border-radius: 5px;
+                }
+                QPushButton:hover {
+                    background-color: #005a9e;
+                }
+            ''')
+            category_button.clicked.connect(lambda checked, c=category: self.showCategoryPage(c))
+            categories_layout.addWidget(category_button)
 
-        btn_file_converter = QPushButton('File Converter', self)
-        btn_file_converter.clicked.connect(self.showFileConverter)
-        self.style_service_button(btn_file_converter)
-        service_layout.addWidget(btn_file_converter)
+        main_layout.addLayout(categories_layout)
 
-        btn_digital_key = QPushButton('Digital Key Generator', self)
-        btn_digital_key.clicked.connect(self.showDigitalKeyGenerator)
-        self.style_service_button(btn_digital_key)
-        service_layout.addWidget(btn_digital_key)
+        # Main content
+        main_content_layout = QGridLayout()
+        main_content_layout.setAlignment(Qt.AlignTop)
 
-        btn_email_template = QPushButton('Email Template Generator', self)
-        btn_email_template.clicked.connect(self.showEmailTemplateGenerator)
-        self.style_service_button(btn_email_template)
-        service_layout.addWidget(btn_email_template)
+        services = [
+            ('QR Code Generator', self.showQRCodeGenerator),
+            ('Image to Text Converter', self.showImageToTextConverter),
+            ('File Converter', self.showFileConverter),
+            ('Digital Key Generator', self.showDigitalKeyGenerator),
+            ('Email Template Generator', self.showEmailTemplateGenerator),
+            ('Watermark Generator', self.showWatermarkGenerator),
+            ('Watermark Removal', self.showWatermarkRemoval),
+            ('Text to Speech', self.showTextToSpeechConverter)
+        ]
 
-        btn_watermark_generator = QPushButton('Watermark Generator', self)
-        btn_watermark_generator.clicked.connect(self.showWatermarkGenerator)
-        self.style_service_button(btn_watermark_generator)
-        service_layout.addWidget(btn_watermark_generator)
+        for idx, (service_name, service_func) in enumerate(services):
+            service_button = QPushButton(service_name, self)
+            service_button.clicked.connect(service_func)
+            self.style_service_button(service_button)
+            main_content_layout.addWidget(service_button, idx // 2, idx % 2)
 
-        btn_text_to_speech = QPushButton('Text to Speech Converter', self)
-        btn_text_to_speech.clicked.connect(self.showTextToSpeechConverter)
-        self.style_service_button(btn_text_to_speech)
-        service_layout.addWidget(btn_text_to_speech)
+        main_layout.addLayout(main_content_layout)
 
-        main_content_layout.addLayout(service_layout)
-        layout.addLayout(main_content_layout)
-
-        self.setLayout(layout)
-        self.setStyleSheet('background-color: #f0f0f0;')  # Background color
+        self.setLayout(main_layout)
+        self.setStyleSheet('background-color: #f0f0f0;')
 
     def style_navbar_button(self, button):
         button.setStyleSheet('''
@@ -113,14 +132,17 @@ class HomePage(QWidget):
                 background-color: #4CAF50;
                 color: white;
                 font-size: 18px;
-                padding: 15px 30px;
-                margin: 10px;
+                padding: 20px 40px;
+                margin: 20px;
                 border-radius: 5px;
             }
             QPushButton:hover {
                 background-color: #45a049;
             }
         ''')
+
+    def showCategoryPage(self, category):
+        QMessageBox.information(self, 'Category Selected', f'You selected: {category}')
 
     def showQRCodeGenerator(self):
         self.parent().parent().showQRCodeGenerator()
@@ -140,12 +162,23 @@ class HomePage(QWidget):
     def showWatermarkGenerator(self):
         self.parent().parent().showWatermarkGenerator()
 
+    def showWatermarkRemoval(self):
+        self.parent().parent().showWatermarkRemoval()
+
     def showTextToSpeechConverter(self):
         self.parent().parent().showTextToSpeechConverter()
+
+    def showLoginPage(self):
+        self.parent().parent().showLoginPage()
+
+    def showSignupPage(self):
+        self.parent().parent().showSignupPage()
 
 class MainApp(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.conn = sqlite3.connect('app_data.db')
+        self.create_tables()
         self.initUI()
 
     def initUI(self):
@@ -155,59 +188,94 @@ class MainApp(QMainWindow):
         self.stacked_widget = QStackedWidget()
         self.setCentralWidget(self.stacked_widget)
 
-        self.home_page = HomePage(self)
+        self.user_id = None
+
         self.login_page = LoginPage(self)
         self.signup_page = SignupPage(self)
-        self.qr_code_generator_page = QRCodeGenerator(self)
-        self.image_to_text_converter_page = ImageToTextConverter(self)
-        self.file_converter_page = FileConverter(self)
-        self.digital_key_generator_page = DigitalKeyGenerator(self)
-        self.email_template_generator_page = EmailTemplateGenerator(self)
-        self.watermark_generator_page = WatermarkGenerator(self)
-        self.text_to_speech_converter_page = TextToSpeechConverter(self)
+        self.home_page = HomePage(self)
+        self.qr_code_generator = QRCodeGenerator(self)
+        self.image_to_text_converter = ImageToTextConverter(self)
+        self.file_converter = FileConverter(self)
+        self.digital_key_generator = DigitalKeyGenerator(self)
+        self.email_template_generator = EmailTemplateGenerator(self)
+        self.watermark_generator = WatermarkGenerator(self)
+        self.watermark_removal = WatermarkRemoval(self)
+        self.text_to_speech_converter = TextToSpeechConverter(self)
 
         self.stacked_widget.addWidget(self.login_page)
         self.stacked_widget.addWidget(self.signup_page)
         self.stacked_widget.addWidget(self.home_page)
-        self.stacked_widget.addWidget(self.qr_code_generator_page)
-        self.stacked_widget.addWidget(self.image_to_text_converter_page)
-        self.stacked_widget.addWidget(self.file_converter_page)
-        self.stacked_widget.addWidget(self.digital_key_generator_page)
-        self.stacked_widget.addWidget(self.email_template_generator_page)
-        self.stacked_widget.addWidget(self.watermark_generator_page)
-        self.stacked_widget.addWidget(self.text_to_speech_converter_page)
+        self.stacked_widget.addWidget(self.qr_code_generator)
+        self.stacked_widget.addWidget(self.image_to_text_converter)
+        self.stacked_widget.addWidget(self.file_converter)
+        self.stacked_widget.addWidget(self.digital_key_generator)
+        self.stacked_widget.addWidget(self.email_template_generator)
+        self.stacked_widget.addWidget(self.watermark_generator)
+        self.stacked_widget.addWidget(self.watermark_removal)
+        self.stacked_widget.addWidget(self.text_to_speech_converter)
 
-        self.stacked_widget.setCurrentWidget(self.login_page)  # Show login page first
-
-    def showMainPage(self):
-        self.stacked_widget.setCurrentWidget(self.home_page)
-
-    def showSignupPage(self):
-        self.stacked_widget.setCurrentWidget(self.signup_page)
+        self.showLoginPage()
 
     def showLoginPage(self):
         self.stacked_widget.setCurrentWidget(self.login_page)
 
+    def showSignupPage(self):
+        self.stacked_widget.setCurrentWidget(self.signup_page)
+
+    def showMainPage(self):
+        self.stacked_widget.setCurrentWidget(self.home_page)
+
     def showQRCodeGenerator(self):
-        self.stacked_widget.setCurrentWidget(self.qr_code_generator_page)
+        self.stacked_widget.setCurrentWidget(self.qr_code_generator)
 
     def showImageToTextConverter(self):
-        self.stacked_widget.setCurrentWidget(self.image_to_text_converter_page)
+        self.stacked_widget.setCurrentWidget(self.image_to_text_converter)
 
     def showFileConverter(self):
-        self.stacked_widget.setCurrentWidget(self.file_converter_page)
+        self.stacked_widget.setCurrentWidget(self.file_converter)
 
     def showDigitalKeyGenerator(self):
-        self.stacked_widget.setCurrentWidget(self.digital_key_generator_page)
+        self.stacked_widget.setCurrentWidget(self.digital_key_generator)
 
     def showEmailTemplateGenerator(self):
-        self.stacked_widget.setCurrentWidget(self.email_template_generator_page)
+        self.stacked_widget.setCurrentWidget(self.email_template_generator)
 
     def showWatermarkGenerator(self):
-        self.stacked_widget.setCurrentWidget(self.watermark_generator_page)
+        self.stacked_widget.setCurrentWidget(self.watermark_generator)
+
+    def showWatermarkRemoval(self):
+        self.stacked_widget.setCurrentWidget(self.watermark_removal)
 
     def showTextToSpeechConverter(self):
-        self.stacked_widget.setCurrentWidget(self.text_to_speech_converter_page)
+        self.stacked_widget.setCurrentWidget(self.text_to_speech_converter)
+
+    def create_tables(self):
+        cursor = self.conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE,
+                password TEXT
+            )
+        ''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS generated_files (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                file_name TEXT,
+                file_path TEXT,
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            )
+        ''')
+        self.conn.commit()
+
+    def store_generated_file(self, user_id, file_name, file_path):
+        cursor = self.conn.cursor()
+        cursor.execute('''
+            INSERT INTO generated_files (user_id, file_name, file_path)
+            VALUES (?, ?, ?)
+        ''', (user_id, file_name, file_path))
+        self.conn.commit()
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
