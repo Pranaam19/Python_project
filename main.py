@@ -1,10 +1,12 @@
 import sys
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
-    QStackedWidget, QWidget, QGridLayout, QLineEdit, QComboBox
+    QStackedWidget, QWidget, QGridLayout, QLineEdit, QListWidget, QFileDialog
 )
 from PyQt5.QtCore import Qt
 import sqlite3
+import os
+import qrcode
 
 # Import custom pages
 from login import LoginPage
@@ -17,6 +19,50 @@ from emailTemplateGenerator import EmailTemplateGenerator
 from watermark import WatermarkGenerator
 from watermark_removal import WatermarkRemoval
 from TextToSpeech import TextToSpeechConverter
+
+class HistoryAndFilesPage(QWidget):
+    def __init__(self, main_app=None, parent=None):
+        super().__init__(parent)
+        self.main_app = main_app
+        self.initUI()
+
+    def initUI(self):
+        self.setWindowTitle('History and Files')
+        self.setGeometry(100, 100, 800, 600)
+
+        layout = QVBoxLayout()
+
+        self.label = QLabel('History and Files', self)
+        layout.addWidget(self.label)
+
+        self.file_list = QListWidget(self)
+        layout.addWidget(self.file_list)
+
+        self.setLayout(layout)
+        self.setStyleSheet("""
+            QLabel {
+                font-size: 18px;
+                font-weight: bold;
+                margin-bottom: 10px;
+                color: black;
+            }
+            QListWidget {
+                font-size: 14px;
+                background-color: white;
+                border: 1px solid #ccc;
+                border-radius: 5px;
+            }
+        """)
+
+    def load_files(self):
+        self.file_list.clear()
+        user_id = self.main_app.user_id
+        cursor = self.main_app.conn.cursor()
+        cursor.execute("SELECT file_name, file_path FROM generated_files WHERE user_id=?", (user_id,))
+        files = cursor.fetchall()
+        for file in files:
+            self.file_list.addItem(f"{file[0]} - {file[1]}")
+
 
 class HomePage(QWidget):
     def __init__(self, parent=None):
@@ -98,7 +144,8 @@ class HomePage(QWidget):
             ('Email Template Generator', self.showEmailTemplateGenerator),
             ('Watermark Generator', self.showWatermarkGenerator),
             ('Watermark Removal', self.showWatermarkRemoval),
-            ('Text to Speech', self.showTextToSpeechConverter)
+            ('Text to Speech', self.showTextToSpeechConverter),
+            ('History and Files', self.showHistoryAndFilesPage)
         ]
 
         for idx, (service_name, service_func) in enumerate(services):
@@ -174,6 +221,10 @@ class HomePage(QWidget):
     def showSignupPage(self):
         self.parent().parent().showSignupPage()
 
+    def showHistoryAndFilesPage(self):
+        self.parent().parent().showHistoryAndFilesPage()
+
+
 class MainApp(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -201,6 +252,7 @@ class MainApp(QMainWindow):
         self.watermark_generator = WatermarkGenerator(self)
         self.watermark_removal = WatermarkRemoval(self)
         self.text_to_speech_converter = TextToSpeechConverter(self)
+        self.history_and_files_page = HistoryAndFilesPage(self)
 
         self.stacked_widget.addWidget(self.login_page)
         self.stacked_widget.addWidget(self.signup_page)
@@ -213,6 +265,7 @@ class MainApp(QMainWindow):
         self.stacked_widget.addWidget(self.watermark_generator)
         self.stacked_widget.addWidget(self.watermark_removal)
         self.stacked_widget.addWidget(self.text_to_speech_converter)
+        self.stacked_widget.addWidget(self.history_and_files_page)
 
         self.showLoginPage()
 
@@ -249,6 +302,10 @@ class MainApp(QMainWindow):
     def showTextToSpeechConverter(self):
         self.stacked_widget.setCurrentWidget(self.text_to_speech_converter)
 
+    def showHistoryAndFilesPage(self):
+        self.history_and_files_page.load_files()
+        self.stacked_widget.setCurrentWidget(self.history_and_files_page)
+
     def create_tables(self):
         cursor = self.conn.cursor()
         cursor.execute('''
@@ -276,6 +333,7 @@ class MainApp(QMainWindow):
             VALUES (?, ?, ?)
         ''', (user_id, file_name, file_path))
         self.conn.commit()
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
