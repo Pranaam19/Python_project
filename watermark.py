@@ -1,13 +1,14 @@
 import sys
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QFileDialog, QLineEdit, QTextEdit, QMessageBox, QApplication
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QFileDialog, QLineEdit, QMessageBox, QApplication
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import Qt
 from PIL import Image, ImageDraw, ImageFont
 
 class WatermarkGenerator(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, main_app=None, parent=None):
         super().__init__(parent)
         self.initUI()
+        self.main_app = main_app
 
     def initUI(self):
         self.setWindowTitle('Watermark Generator')
@@ -40,6 +41,11 @@ class WatermarkGenerator(QWidget):
         # Label to display image
         self.image_label = QLabel(self)
         layout.addWidget(self.image_label)
+
+        # Button to go back to home
+        self.button_back = QPushButton('Back to Home', self)
+        self.button_back.clicked.connect(self.goBackToHome)
+        layout.addWidget(self.button_back)
 
         self.setLayout(layout)
 
@@ -123,3 +129,17 @@ class WatermarkGenerator(QWidget):
             QMessageBox.information(self, 'Success', f'Watermarked image saved as {save_path}')
             self.image_label.setPixmap(QPixmap(save_path))
             self.image_label.setScaledContents(True)
+
+    def goBackToHome(self):
+        if self.main_app:
+            self.main_app.showMainPage()  # Call the method to show the main page
+        else:
+            QMessageBox.warning(self, 'Error', 'Main application reference not found.')
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    from main import MainApp
+    main_app = MainApp()
+    watermark_generator = WatermarkGenerator(main_app=main_app)
+    watermark_generator.show()
+    sys.exit(app.exec_())

@@ -1,13 +1,15 @@
 import sys
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QFileDialog, QMessageBox
+import os
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QFileDialog, QMessageBox, QApplication
 from PyQt5.QtCore import Qt
 from pdf2docx import parse
 from docx2pdf import convert
 
 class FileConverter(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, main_app=None, parent=None):
         super().__init__(parent)
         self.initUI()
+        self.main_app = main_app
 
     def initUI(self):
         self.setWindowTitle('File Converter')
@@ -26,6 +28,11 @@ class FileConverter(QWidget):
         self.button_doc_to_pdf = QPushButton('Convert DOCX to PDF', self)
         self.button_doc_to_pdf.clicked.connect(self.convertDocToPdf)
         layout.addWidget(self.button_doc_to_pdf)
+
+        # Button to go back to home
+        self.button_back = QPushButton('Back to Home', self)
+        self.button_back.clicked.connect(self.goBackToHome)
+        layout.addWidget(self.button_back)
 
         self.setLayout(layout)
 
@@ -64,6 +71,7 @@ class FileConverter(QWidget):
             output_file = fileName.replace('.pdf', '.docx')
             parse(fileName, output_file)
             QMessageBox.information(self, 'Success', f'Converted to {output_file}')
+            self.storeFileInDatabase(output_file)
 
     def convertDocToPdf(self):
         options = QFileDialog.Options()
@@ -72,4 +80,25 @@ class FileConverter(QWidget):
             convert(fileName)
             output_file = fileName.replace('.docx', '.pdf')
             QMessageBox.information(self, 'Success', f'Converted to {output_file}')
+            self.storeFileInDatabase(output_file)
 
+    def storeFileInDatabase(self, file_path):
+        if self.main_app and self.main_app.user_id is not None:
+            file_name = os.path.basename(file_path)
+            self.main_app.store_generated_file(self.main_app.user_id, file_name, file_path)
+        else:
+            QMessageBox.warning(self, 'Error', 'Main application reference or user ID not found.')
+
+    def goBackToHome(self):
+        if self.main_app:
+            self.main_app.showMainPage()  # Call the method to show the main page
+        else:
+            QMessageBox.warning(self, 'Error', 'Main application reference not found.')
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    from main import MainApp
+    main_app = MainApp()
+    file_converter = FileConverter(main_app=main_app)
+    file_converter.show()
+    sys.exit(app.exec_())

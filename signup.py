@@ -1,112 +1,103 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QHBoxLayout, QMessageBox
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QFormLayout, QLineEdit, QPushButton, QLabel, QMessageBox, QHBoxLayout
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QFont
 import sqlite3
 
 class SignupPage(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, main_app=None, parent=None):
         super().__init__(parent)
-        self.parent_widget = parent  # Store the parent widget (MainApp)
+        self.main_app = main_app
         self.initUI()
 
     def initUI(self):
-        self.setWindowTitle('Signup Page')
-        self.setGeometry(100, 100, 1200, 800)
+        self.setWindowTitle('Sign Up')
+        self.setGeometry(100, 100, 400, 300)
 
         layout = QVBoxLayout()
-        layout.setAlignment(Qt.AlignCenter)
+        form_layout = QFormLayout()
 
-        title_label = QLabel('Signup for MyApp', self)
-        title_label.setAlignment(Qt.AlignCenter)
-        title_label.setStyleSheet('font-size: 32px; font-weight: bold; color: #232f3e; margin-bottom: 20px;')
-        layout.addWidget(title_label)
+        title = QLabel('Sign Up')
+        title.setFont(QFont('Arial', 24, QFont.Bold))
+        title.setStyleSheet('color: #4CAF50; margin-bottom: 20px;')
+        layout.addWidget(title, alignment=Qt.AlignCenter)
 
-        form_layout = QVBoxLayout()
-        form_layout.setAlignment(Qt.AlignCenter)
+        self.username_input = QLineEdit()
+        self.username_input.setPlaceholderText('Enter your username')
+        self.username_input.setStyleSheet('padding: 10px; border-radius: 5px; border: 1px solid #ccc;')
 
-        username_label = QLabel('Username:', self)
-        username_label.setStyleSheet('font-size: 18px; color: #232f3e;')
-        form_layout.addWidget(username_label)
-
-        self.username_input = QLineEdit(self)
-        self.username_input.setPlaceholderText('Enter your desired username')
-        self.username_input.setStyleSheet('padding: 10px; border-radius: 5px; border: 1px solid #cccccc;')
-        form_layout.addWidget(self.username_input)
-
-        password_label = QLabel('Password:', self)
-        password_label.setStyleSheet('font-size: 18px; color: #232f3e;')
-        form_layout.addWidget(password_label)
-
-        self.password_input = QLineEdit(self)
-        self.password_input.setPlaceholderText('Enter your desired password')
+        self.password_input = QLineEdit()
         self.password_input.setEchoMode(QLineEdit.Password)
-        self.password_input.setStyleSheet('padding: 10px; border-radius: 5px; border: 1px solid #cccccc;')
-        form_layout.addWidget(self.password_input)
+        self.password_input.setPlaceholderText('Enter your password')
+        self.password_input.setStyleSheet('padding: 10px; border-radius: 5px; border: 1px solid #ccc;')
+
+        form_layout.addRow('Username:', self.username_input)
+        form_layout.addRow('Password:', self.password_input)
+
+        self.signup_button = QPushButton('Sign Up')
+        self.signup_button.clicked.connect(self.signup)
+        self.signup_button.setStyleSheet('''
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                font-size: 16px;
+                padding: 10px 20px;
+                margin-top: 20px;
+                border: none;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        ''')
+
+        login_layout = QHBoxLayout()
+        login_label = QLabel("Already have an account?")
+        login_label.setStyleSheet('font-size: 14px;')
+
+        self.login_button = QPushButton('Login')
+        self.login_button.clicked.connect(self.showLoginPage)
+        self.login_button.setStyleSheet('''
+            QPushButton {
+                background-color: #0078d7;
+                color: white;
+                font-size: 14px;
+                padding: 5px 15px;
+                margin-left: 10px;
+                border: none;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background-color: #005a9e;
+            }
+        ''')
+
+        login_layout.addWidget(login_label)
+        login_layout.addWidget(self.login_button)
 
         layout.addLayout(form_layout)
+        layout.addWidget(self.signup_button, alignment=Qt.AlignCenter)
+        layout.addLayout(login_layout)
+        layout.setAlignment(login_layout, Qt.AlignCenter)
 
-        button_layout = QHBoxLayout()
-        button_layout.setAlignment(Qt.AlignCenter)
-
-        signup_button = QPushButton('Sign Up', self)
-        signup_button.clicked.connect(self.signup)
-        signup_button.setStyleSheet('''
-            QPushButton {
-                background-color: #ff9900;
-                color: white;
-                font-size: 18px;
-                padding: 10px 20px;
-                border-radius: 5px;
-                margin-right: 10px;
-            }
-            QPushButton:hover {
-                background-color: #e68a00;
-            }
-        ''')
-        button_layout.addWidget(signup_button)
-
-        login_button = QPushButton('Login', self)
-        login_button.clicked.connect(self.showLoginPage)
-        login_button.setStyleSheet('''
-            QPushButton {
-                background-color: #232f3e;
-                color: white;
-                font-size: 18px;
-                padding: 10px 20px;
-                border-radius: 5px;
-            }
-            QPushButton:hover {
-                background-color: #1e272e;
-            }
-        ''')
-        button_layout.addWidget(login_button)
-
-        layout.addLayout(button_layout)
         self.setLayout(layout)
+        self.setStyleSheet('background-color: #f0f0f0;')
 
     def signup(self):
         username = self.username_input.text()
         password = self.password_input.text()
 
         if not username or not password:
-            QMessageBox.warning(self, 'Input Error', 'Please fill out all fields')
+            QMessageBox.warning(self, 'Error', 'Please fill in all fields')
             return
 
+        cursor = self.main_app.conn.cursor()
         try:
-            conn = sqlite3.connect('myapp.db')
-            cursor = conn.cursor()
-
             cursor.execute('INSERT INTO users (username, password) VALUES (?, ?)', (username, password))
-            conn.commit()
-
-            QMessageBox.information(self, 'Signup Successful', 'Signup successful. You can now login.')
-            self.showLoginPage()
-
-        except sqlite3.Error as e:
-            QMessageBox.warning(self, 'Database Error', f'Database error occurred: {str(e)}')
-
-        finally:
-            if conn:
-                conn.close()
+            self.main_app.conn.commit()
+            QMessageBox.information(self, 'Success', 'Account created successfully')
+            self.main_app.showLoginPage()
+        except sqlite3.IntegrityError:
+            QMessageBox.warning(self, 'Error', 'Username already exists')
 
     def showLoginPage(self):
-        self.parent_widget.showLoginPage()
+        self.main_app.showLoginPage()

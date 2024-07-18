@@ -1,5 +1,5 @@
-import os
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLabel, QFileDialog, QMessageBox
+import os,sys
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLabel, QFileDialog, QMessageBox ,QApplication
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import Qt
 from PIL import Image
@@ -7,9 +7,10 @@ import cv2
 import numpy as np
 
 class WatermarkRemoval(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, main_app=None, parent=None):
         super().__init__(parent)
         self.initUI()
+        self.main_app = main_app
 
     def initUI(self):
         self.setWindowTitle('Watermark Removal')
@@ -32,6 +33,11 @@ class WatermarkRemoval(QWidget):
         self.image_label = QLabel(self)
         self.image_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.image_label)
+
+        # Button to go back to home
+        self.button_back = QPushButton('Back to Home', self)
+        self.button_back.clicked.connect(self.goBackToHome)
+        layout.addWidget(self.button_back)
 
         self.setLayout(layout)
 
@@ -73,3 +79,17 @@ class WatermarkRemoval(QWidget):
             QMessageBox.information(self, 'Success', 'Image saved successfully.')
         else:
             QMessageBox.warning(self, 'Error', 'Unable to save image.')
+
+    def goBackToHome(self):
+        if self.main_app:
+            self.main_app.showMainPage()  # Call the method to show the main page
+        else:
+            QMessageBox.warning(self, 'Error', 'Main application reference not found.')
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    from main import MainApp
+    main_app = MainApp()
+    tts_converter = WatermarkRemoval(main_app=main_app)
+    tts_converter.show()
+    sys.exit(app.exec_())

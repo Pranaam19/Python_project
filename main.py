@@ -1,7 +1,7 @@
 import sys
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
-    QStackedWidget, QWidget, QGridLayout, QLineEdit, QListWidget, QFileDialog
+    QStackedWidget, QWidget, QGridLayout, QLineEdit, QListWidget, QMessageBox
 )
 from PyQt5.QtCore import Qt
 import sqlite3
@@ -19,6 +19,7 @@ from emailTemplateGenerator import EmailTemplateGenerator
 from watermark import WatermarkGenerator
 from watermark_removal import WatermarkRemoval
 from TextToSpeech import TextToSpeechConverter
+from admin import AdminPage
 
 class HistoryAndFilesPage(QWidget):
     def __init__(self, main_app=None, parent=None):
@@ -38,6 +39,10 @@ class HistoryAndFilesPage(QWidget):
         self.file_list = QListWidget(self)
         layout.addWidget(self.file_list)
 
+        self.button_back = QPushButton('Back to Home', self)
+        self.button_back.clicked.connect(self.goBackToHome)
+        layout.addWidget(self.button_back)
+
         self.setLayout(layout)
         self.setStyleSheet("""
             QLabel {
@@ -52,6 +57,17 @@ class HistoryAndFilesPage(QWidget):
                 border: 1px solid #ccc;
                 border-radius: 5px;
             }
+            QPushButton {
+                font-size: 16px;
+                padding: 10px;
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
         """)
 
     def load_files(self):
@@ -62,6 +78,12 @@ class HistoryAndFilesPage(QWidget):
         files = cursor.fetchall()
         for file in files:
             self.file_list.addItem(f"{file[0]} - {file[1]}")
+
+    def goBackToHome(self):
+        if self.main_app:
+            self.main_app.showMainPage()
+        else:
+            QMessageBox.warning(self, 'Error', 'Main application reference not found.')
 
 
 class HomePage(QWidget):
@@ -253,6 +275,7 @@ class MainApp(QMainWindow):
         self.watermark_removal = WatermarkRemoval(self)
         self.text_to_speech_converter = TextToSpeechConverter(self)
         self.history_and_files_page = HistoryAndFilesPage(self)
+        self.admin_page = AdminPage(self)
 
         self.stacked_widget.addWidget(self.login_page)
         self.stacked_widget.addWidget(self.signup_page)
@@ -266,6 +289,7 @@ class MainApp(QMainWindow):
         self.stacked_widget.addWidget(self.watermark_removal)
         self.stacked_widget.addWidget(self.text_to_speech_converter)
         self.stacked_widget.addWidget(self.history_and_files_page)
+        self.stacked_widget.addWidget(self.admin_page)
 
         self.showLoginPage()
 
@@ -306,6 +330,9 @@ class MainApp(QMainWindow):
         self.history_and_files_page.load_files()
         self.stacked_widget.setCurrentWidget(self.history_and_files_page)
 
+    def showAdminPage(self):
+        self.stacked_widget.setCurrentWidget(self.admin_page)
+
     def create_tables(self):
         cursor = self.conn.cursor()
         cursor.execute('''
@@ -323,6 +350,9 @@ class MainApp(QMainWindow):
                 file_path TEXT,
                 FOREIGN KEY (user_id) REFERENCES users (id)
             )
+        ''')
+        cursor.execute('''
+            INSERT OR IGNORE INTO users (username, password) VALUES ('admin', 'admin123')
         ''')
         self.conn.commit()
 

@@ -1,18 +1,21 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox, QFileDialog
-from PyQt5.QtGui import QPixmap, QImage, QIcon
+import sys
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox, QFileDialog, QApplication
+from PyQt5.QtGui import QPixmap, QImage
 from PyQt5.QtCore import Qt
-
 import qrcode
+import os
 
 class QRCodeGenerator(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, main_app=None, parent=None):
         super().__init__(parent)
         self.initUI()
+        self.main_app = main_app
 
     def initUI(self):
         self.setWindowTitle('QR Code Generator')
         self.setMinimumSize(400, 400)  # Adjusted dimensions
         self.setStyleSheet("background-color: #f0f0f0; border: 2px solid #ccc; border-radius: 10px;")
+        layout = QVBoxLayout()
 
         main_layout = QVBoxLayout()
         main_layout.setContentsMargins(20, 20, 20, 20)
@@ -56,11 +59,10 @@ class QRCodeGenerator(QWidget):
         self.qr_label.setAlignment(Qt.AlignCenter)
         main_layout.addWidget(self.qr_label, alignment=Qt.AlignCenter)
 
-        # Back to Home button
+        # Button to go back to home
         self.button_back = QPushButton('Back to Home', self)
-        self.button_back.setIcon(QIcon('back.png'))  # Assuming back.png is in the current directory
-        self.button_back.clicked.connect(self.goToHomePage)
-        main_layout.addWidget(self.button_back, alignment=Qt.AlignRight)
+        self.button_back.clicked.connect(self.goBackToHome)
+        main_layout.addWidget(self.button_back, alignment=Qt.AlignCenter)
 
         self.setLayout(main_layout)
 
@@ -74,7 +76,7 @@ class QRCodeGenerator(QWidget):
             version=1,
             error_correction=qrcode.constants.ERROR_CORRECT_L,
             box_size=10,
-            border=4,
+            border= 4,
         )
         qr.add_data(text)
         qr.make(fit=True)
@@ -95,6 +97,13 @@ class QRCodeGenerator(QWidget):
 
         self.qrcode_pixmap = pixmap  # Store the pixmap for saving
 
+        # Store the QR code in the database
+        if self.main_app and self.main_app.user_id is not None:
+            file_name = "qrcode.png"
+            file_path = os.path.join(os.getcwd(), file_name)
+            img.save(file_path)
+            self.main_app.store_generated_file(self.main_app.user_id, file_name, file_path)
+
     def saveQRCode(self):
         if hasattr(self, 'qrcode_pixmap'):
             options = QFileDialog.Options()
@@ -105,6 +114,16 @@ class QRCodeGenerator(QWidget):
         else:
             QMessageBox.warning(self, 'Error', 'Generate a QR code first.')
 
-    def goToHomePage(self):
-        if self.parent() and hasattr(self.parent(), 'showHomePage'):
-            self.parent().showHomePage()
+    def goBackToHome(self):
+        if self.main_app:
+            self.main_app.showMainPage()  # Call the method to show the main page
+        else:
+            QMessageBox.warning(self, 'Error', 'Main application reference not found.')
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    from main import MainApp
+    main_app = MainApp()
+    qr_generator = QRCodeGenerator(main_app=main_app)
+    qr_generator.show()
+    sys.exit(app.exec_())
